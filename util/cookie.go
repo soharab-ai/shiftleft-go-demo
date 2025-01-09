@@ -39,9 +39,13 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 }
 
 func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		return ""
+	}
 	return cookie.Value
 }
+
 
 func DeleteCookie(w http.ResponseWriter, cookies []string) {
 	for _, name := range cookies {

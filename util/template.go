@@ -22,7 +22,7 @@ func SafeRender(w http.ResponseWriter, r *http.Request, name string, data map[st
 }
 
 func RenderAsJson(w http.ResponseWriter, data ...interface{}) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Origin", "https://trusted-site.com")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET")
 	w.Header().Set("Content-Type", "application/json")
@@ -31,6 +31,9 @@ func RenderAsJson(w http.ResponseWriter, data ...interface{}) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Write(b)
+}
+
 	w.Write(b)
 }
 
