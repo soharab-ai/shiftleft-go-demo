@@ -22,9 +22,20 @@ func SafeRender(w http.ResponseWriter, r *http.Request, name string, data map[st
 }
 
 func RenderAsJson(w http.ResponseWriter, data ...interface{}) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET")
+func RenderAsJson(w http.ResponseWriter, r *http.Request, data ...interfacenull) {
+	// Define allowed origins instead of using wildcard "*"
+	allowedOrigins := []string{"https://trusted-site.com", "https://api.yourservice.com"}
+	
+	// Get the origin from the request header
+	origin := r.Header.Get("Origin")
+	
+	// Only set CORS headers if the origin is in the allowed list
+	if contains(allowedOrigins, origin) {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET")
+	}
+	
 	w.Header().Set("Content-Type", "application/json")
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -32,6 +43,20 @@ func RenderAsJson(w http.ResponseWriter, data ...interface{}) {
 		return
 	}
 	w.Write(b)
+}
+
+// Helper function to check if an origin is in the list of allowed origins
+func contains(allowedOrigins []string, origin string) bool {
+	if origin == "" {
+		return false
+	}
+	
+	for _, allowed := range allowedOrigins {
+		if allowed == origin {
+			return true
+		}
+	}
+	return false
 }
 
 func UnSafeRender(w http.ResponseWriter, name string, data ...interface{}) {
