@@ -39,8 +39,35 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 }
 
 func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
-	return cookie.Value
+// GetSanitizedUID gets the cookie value and validates it's a valid integer
+func GetSanitizedUID(r *http.Request) (string, error) {
+    cookie, err := r.Cookie("Uid")
+    if err != nil {
+        return "", err
+    }
+    
+    // Enhanced validation - whitelist approach for input validation
+    // Only allow numeric characters
+    for _, ch := range cookie.Value {
+        if ch < '0' || ch > '9' {
+            return "", errors.New("invalid user ID format: only numeric values allowed")
+        }
+    }
+    
+    // Validate that uid is a number and in an acceptable range
+    uid, err := strconv.Atoi(cookie.Value)
+    if err != nil || uid <= 0 || uid > 1000000 {  // Added range check for defense in depth
+        return "", errors.New("invalid user ID format or range")
+    }
+    
+    return strconv.Itoa(uid), nil
+}
+
+// Original GetCookie function kept for compatibility but marked as deprecated
+// Deprecated: Use GetSanitizedUID instead for secure cookie handling
+func GetCookie(r *http.Request, name string) string {
+    cookie, _ := r.Cookie(name)
+    return cookie.Value
 }
 
 func DeleteCookie(w http.ResponseWriter, cookies []string) {
