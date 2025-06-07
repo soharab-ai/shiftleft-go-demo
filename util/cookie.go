@@ -39,9 +39,26 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 }
 
 func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
-	return cookie.Value
+    cookie, err := r.Cookie(name)
+    if err != nil {
+        return ""
+    }
+    
+    // Validate that the value is a positive integer
+    id, err := strconv.Atoi(cookie.Value)
+    if err != nil || id <= 0 {
+        return ""
+    }
+    
+    // Add maximum length check to prevent numeric overflow attacks
+    const MAX_SAFE_ID = 1000000000 // Set appropriate limit for your application
+    if len(cookie.Value) > 10 || id > MAX_SAFE_ID {
+        return ""
+    }
+    
+    return cookie.Value
 }
+
 
 func DeleteCookie(w http.ResponseWriter, cookies []string) {
 	for _, name := range cookies {
