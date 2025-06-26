@@ -39,9 +39,28 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 }
 
 func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
-	return cookie.Value
+	cookie, err := r.Cookie(name)
+	if err != nil || cookie == nil {
+		return ""
+	}
+	
+	// Validate cookie value before returning - only accept numeric user IDs
+	value := cookie.Value
+	if match, _ := regexp.MatchString("^[0-9]+$", value); !match {
+		log.Printf("Invalid cookie value detected: %s", value)
+		return ""
+	}
+	
+	// Additional validation - try to convert to int to ensure it's a valid numeric ID
+	_, err = strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		log.Printf("Cookie value is not a valid integer: %s", err.Error())
+		return ""
+	}
+	
+	return value
 }
+
 
 func DeleteCookie(w http.ResponseWriter, cookies []string) {
 	for _, name := range cookies {
