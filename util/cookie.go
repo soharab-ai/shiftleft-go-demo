@@ -39,9 +39,15 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 }
 
 func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		log.Printf("Cookie '%s' not found: %v", name, err)
+		return ""
+	}
+	// Return the cookie value, it will be validated before use
 	return cookie.Value
 }
+
 
 func DeleteCookie(w http.ResponseWriter, cookies []string) {
 	for _, name := range cookies {
