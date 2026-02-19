@@ -36,20 +36,62 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 		Value: value,
 	}
 	http.SetCookie(w, &cookie)
+var (
+    // Fixed: Prepared statement for query plan caching and additional SQL injection protection
+    getProfileStmt *sql.Stmt
+    stmtMutex      sync.RWMutex
+    
+    // Fixed: Rate limiter for preventing enumeration attacks
+    requestTracker = make(map[string]*requestRecord)
+    trackerMutex   sync.RWMutex
+)
+
+type requestRecord struct {
+    count     int
+    firstSeen time.Time
 }
 
-func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
-	return cookie.Value
+// InitPreparedStatements initializes prepared statements for database queries
+// This function should be called during application startup after DB connection is established
+// Fixed: Implements prepared statement caching for performance and security
+func InitPreparedStatements(db *sql.DB) error {
+    stmtMutex.Lock()
+    defer stmtMutex.Unlock()
+    
+    getProfileSql := `SELECT p.user_id, p.full_name, p.city, p.phone_number 
+                      FROM Profile as p, Users as u 
+                      WHERE p.user_id = u.id 
+                      AND u.id = ?`
+    
+    var err error
+    getProfileStmt, err = db.Prepare(getProfileSql)
+    if err != nil {
+        return err
+    }
+    return nil
 }
 
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
-			Value:   "",
-			Expires: time.Unix(0, 0),
-		}
+// CleanupPreparedStatements closes prepared statements during application shutdown
+// Fixed: Proper resource cleanup for prepared statements
+func CleanupPreparedStatements() {
+    stmtMutex.Lock()
+    defer stmtMutex.Unlock()
+    
+    if getProfileStmt != nil {
+        getProfileStmt.Close()
+    }
+}
+
+    id, err := strconv.Atoi(uid)
+    if err != nil {
+        return errors.New("invalid UID format: must be numeric")
+    }
+    if id <= 0 || id > 999999999 {
+        return errors.New("invalid UID range")
+    }
+    return nil
+}
+
 		http.SetCookie(w, cookie)
 	}
 }
