@@ -12,30 +12,32 @@ import(
 	"github.com/julienschmidt/httprouter"
 )
 
-
-type Class struct{}
-
-func New()*Class{
-	return &Class{}
+// InitLogger initializes a production-ready structured logger with JSON encoding
+// This logger automatically sanitizes all field values to prevent log forging attacks
+func InitLogger() *zap.Logger {
+    logger, _ := zap.NewProduction()
+    return logger
 }
 
-func(self *Class) LoggingMiddleware(h httprouter.Handle) httprouter.Handle{
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+var logger = InitLogger()
+
+func(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 		start := time.Now()
-		log.Printf("Request From %s", r.Header.Get("User-Agent"))
-		log.Printf("Started %s %s", r.Method, r.URL.Path)
+		// Fixed: Using structured logging with zap to prevent log forging attacks (OWASP A1-Injection mitigation)
+		// All fields are automatically sanitized and encoded in JSON format, preventing newline and control character injection
+		logger.Info("request received",
+			zap.String("user_agent", r.Header.Get("User-Agent")),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
+		
 		h(w, r, ps)
-		log.Printf("Completed %s in %v", r.URL.Path, time.Since(start))
+		
+		// Fixed: Using structured logging for completion message with automatic sanitization
+		logger.Info("request completed",
+			zap.String("path", r.URL.Path),
+			zap.Duration("duration", time.Since(start)))
 	}
-}
 
-func (this *Class) AuthCheck(h httprouter.Handle) httprouter.Handle {
-	var sess = session.New()
- 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if !sess.IsLoggedIn(r) {
-			redirect := config.Fullurl + "login"
-			http.Redirect(w, r, redirect, http.StatusSeeOther)
-			return
 		}
 
 		h(w, r, ps)
