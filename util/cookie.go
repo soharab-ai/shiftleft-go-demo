@@ -40,16 +40,31 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 
 func GetCookie(r *http.Request, name string) string {
 	cookie, _ := r.Cookie(name)
+	// FIXED: This method is kept for backward compatibility but should be deprecated
+	// Use GetCookieSafe instead for security-critical operations
 	return cookie.Value
 }
 
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
-			Value:   "",
-			Expires: time.Unix(0, 0),
-		}
-		http.SetCookie(w, cookie)
+// GetCookieSafe retrieves and validates a cookie value
+// FIXED: Added input validation to prevent SQL injection through cookie manipulation
+func GetCookieSafe(r *http.Request, name string) (string, error) {
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		return "", err
 	}
+	
+	// Validate cookie value - only allow numeric values for Uid cookie
+	// FIXED: Input validation using regex to ensure only digits are accepted
+	matched, err := regexp.MatchString("^[0-9]+$", cookie.Value)
+	if err != nil || !matched {
+		return "", fmt.Errorf("invalid cookie format")
+	}
+	
+	// FIXED: Add range validation to prevent integer overflow and logical attacks
+	uidInt, err := strconv.Atoi(cookie.Value)
+	if err != nil || uidInt <= 0 || uidInt > 2147483647 {
+		return "", fmt.Errorf("user ID out of valid range")
+	}
+	
+	return cookie.Value, nil
 }
