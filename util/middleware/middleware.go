@@ -20,13 +20,18 @@ func New()*Class{
 }
 
 func(self *Class) LoggingMiddleware(h httprouter.Handle) httprouter.Handle{
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+func(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 		start := time.Now()
-		log.Printf("Request From %s", r.Header.Get("User-Agent"))
-		log.Printf("Started %s %s", r.Method, r.URL.Path)
+		// FIX: Use html.EscapeString to prevent log forging attacks (CWE-117)
+		userAgent := html.EscapeString(r.Header.Get("User-Agent"))
+		log.Printf("Request From %s", userAgent)
+		// FIX: Apply html.EscapeString to URL path to prevent log injection
+		log.Printf("Started %s %s", r.Method, html.EscapeString(r.URL.Path))
 		h(w, r, ps)
-		log.Printf("Completed %s in %v", r.URL.Path, time.Since(start))
+		// FIX: Apply html.EscapeString to URL path in completion log
+		log.Printf("Completed %s in %v", html.EscapeString(r.URL.Path), time.Since(start))
 	}
+
 }
 
 func (this *Class) AuthCheck(h httprouter.Handle) httprouter.Handle {
