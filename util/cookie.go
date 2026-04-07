@@ -38,18 +38,25 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 	http.SetCookie(w, &cookie)
 }
 
-func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
-	return cookie.Value
-}
-
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
-			Value:   "",
-			Expires: time.Unix(0, 0),
-		}
-		http.SetCookie(w, cookie)
+// GetCookie retrieves and validates cookie values - FIXED: Added stricter validation for Uid cookie
+func GetCookie(r *http.Request, name string) (string, error) {
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		return "", err
 	}
+	
+	// FIXED: Add stricter regex validation for Uid cookie to prevent injection attacks
+	if name == "Uid" {
+		// FIXED: Regex pattern ensures only positive integers without leading zeros
+		matched, _ := regexp.MatchString(`^[1-9][0-9]*$`, cookie.Value)
+		if !matched {
+			return "", errors.New("invalid cookie value format")
+		}
+		uid, err := strconv.Atoi(cookie.Value)
+		if err != nil || uid <= 0 {
+			return "", errors.New("invalid cookie value")
+		}
+	}
+	
+	return cookie.Value, nil
 }
