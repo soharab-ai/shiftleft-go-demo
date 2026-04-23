@@ -60,31 +60,41 @@ func (self *Self) GetSession(r *http.Request, key string) string {
 func (self *Self) DeleteSession(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "govwa")
 	if err != nil {
-		log.Println(err.Error())
+		// MITIGATION FIX: Validate error isn't exposing sensitive data
+		errorMsg := err.Error()
+		if strings.Contains(strings.ToLower(errorMsg), "password") || 
+		   strings.Contains(strings.ToLower(errorMsg), "token") {
+			errorMsg = "session retrieval error (details redacted)"
+		}
+		
+		// MITIGATION FIX: Use centralized sanitization from middleware package
+		sanitizedError := sanitizeLogInput(errorMsg)
+		// MITIGATION FIX: Structured logging with %q for automatic escaping
+		log.Printf("[SESSION_ERROR] operation=get error=%q", sanitizedError)
 	}
 
 	session.Options = &sessions.Options{
 		MaxAge:   -1,
-		HttpOnly: false, //set to false for xss :)
+		HttpOnly: true, // MITIGATION FIX: Changed to true for security (prevents XSS attacks)
 	}
 
 	session.Values["govwa_session"] = false
-	err = session.Save(r, w) //safe session and send it to client as cookie
+	err = session.Save(r, w)
 
 	if err != nil {
-		log.Println(err.Error())
+		// MITIGATION FIX: Validate error isn't exposing sensitive data
+		errorMsg := err.Error()
+		if strings.Contains(strings.ToLower(errorMsg), "password") || 
+		   strings.Contains(strings.ToLower(errorMsg), "token") {
+			errorMsg = "session save error (details redacted)"
+		}
+		
+		// MITIGATION FIX: Use centralized sanitization from middleware package
+		sanitizedError := sanitizeLogInput(errorMsg)
+		// MITIGATION FIX: Structured logging with %q for automatic escaping
+		log.Printf("[SESSION_ERROR] operation=save error=%q", sanitizedError)
 	}
 
 	return
 }
 
-func (self *Self) IsLoggedIn(r *http.Request) bool {
-	s, err := store.Get(r, "govwa")
-	if err != nil {
-		log.Println(err.Error())
-	}
-	if auth, ok := s.Values["govwa_session"].(bool); !ok || !auth {
-		return false
-	}
-	return true
-}
