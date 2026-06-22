@@ -40,17 +40,45 @@ def log_entry():
 @bp.route("/grep_processes")
 def grep_processes():
     name = request.args.get("name")
-    # vulnerability: Remote Code Execution
-    res = subprocess.run(
-        ["ps aux | grep " + name + " | awk '{print $11}'"],
-        shell=True,
-        capture_output=True,
-    )
-    if res.stdout is None:
-        return jsonify({"error": "no stdout returned"})
-    out = res.stdout.decode("utf-8")
-    names = out.split("\n")
+    
+    # FIX: Validate that name parameter is provided and is a string
+    if not name or not isinstance(name, str):
+        return jsonify({"error": "invalid name parameter"})
+    
+    # FIX: Limit length to prevent DoS attacks
+    if len(name) > 256:
+        return jsonify({"error": "name parameter too long"})
+    
+    # FIX: Execute ps command directly without shell to eliminate command injection vulnerability
+    try:
+        res = subprocess.run(
+            ["ps", "aux"],
+            capture_output=True,
+            timeout=5,
+            text=True
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "command timeout"})
+    
+    # FIX: Check if command executed successfully
+    if res.returncode != 0:
+        return jsonify({"error": "ps command failed"})
+    
+    # FIX: Parse output in Python instead of using shell pipes (grep/awk) to prevent command injection
+    lines = res.stdout.strip().split('\n')
+    names = []
+    
+    for line in lines[1:]:  # Skip header line
+        # Split on whitespace and extract 11th column (command name)
+        parts = line.split(None, 10)  # Split into max 11 parts
+        if len(parts) >= 11:
+            command = parts[10]
+            # Filter by name using Python's 'in' operator instead of shell grep
+            if name.lower() in command.lower():
+                names.append(command)
+    
     return jsonify({"success": True, "names": names})
+
 
 
 @bp.route("/deserialized_descr", methods=["POST"])
