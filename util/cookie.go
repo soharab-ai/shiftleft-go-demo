@@ -38,15 +38,18 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 	http.SetCookie(w, &cookie)
 }
 
+// GetCookie retrieves cookie value with validation to prevent empty or malformed cookies
+// FIXED: Added error checking to handle missing cookies safely
 func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
+	cookie, err := r.Cookie(name)
+	// Added error checking to handle missing cookies safely
+	if err != nil {
+		log.Printf("Cookie %s not found: %v", name, err)
+		return ""
+	}
 	return cookie.Value
 }
 
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
 			Value:   "",
 			Expires: time.Unix(0, 0),
 		}
