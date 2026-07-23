@@ -39,17 +39,20 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 }
 
 func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
-	return cookie.Value
+	cookie, err := r.Cookie(name)
+	// MITIGATION: Handle error case when cookie doesn't exist
+	if err != nil {
+		log.Printf("Cookie retrieval error for '%s': %v", name, err)
+		return ""
+	}
+	
+	value := cookie.Value
+	// MITIGATION: Remove SQL comment sequences as defense-in-depth measure
+	value = strings.ReplaceAll(value, "--", "")
+	value = strings.ReplaceAll(value, "/*", "")
+	value = strings.ReplaceAll(value, "*/", "")
+	
+	// Note: Cookie value validation happens at usage point through ValidateUID
+	return value
 }
 
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
-			Value:   "",
-			Expires: time.Unix(0, 0),
-		}
-		http.SetCookie(w, cookie)
-	}
-}
