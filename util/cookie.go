@@ -38,14 +38,17 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 	http.SetCookie(w, &cookie)
 }
 
+// GetCookie retrieves cookie value without validation
+// Validation should be performed at the handler level
 func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		return "" // Return empty string if cookie doesn't exist
+	}
+	// Fixed: Removed sanitization to follow separation of concerns - validation belongs in handler
 	return cookie.Value
 }
 
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
 			Name:    name,
 			Value:   "",
 			Expires: time.Unix(0, 0),
