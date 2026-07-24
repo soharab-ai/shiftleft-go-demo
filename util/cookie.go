@@ -42,14 +42,24 @@ func GetCookie(r *http.Request, name string) string {
 	cookie, _ := r.Cookie(name)
 	return cookie.Value
 }
-
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
-			Value:   "",
-			Expires: time.Unix(0, 0),
-		}
-		http.SetCookie(w, cookie)
+// ValidateUID validates and sanitizes user ID input to prevent SQL injection
+// Returns validated integer ID or error if validation fails
+func ValidateUID(uid string) (int, error) {
+	// FIX: Prevent DoS through excessive input length
+	if len(uid) > 10 {
+		return 0, errors.New("user ID exceeds maximum length")
 	}
+	
+	// FIX: Use ParseInt with explicit bit size to prevent integer overflow
+	id, err := strconv.ParseInt(uid, 10, 32)
+	if err != nil || id > 2147483647 {
+		return 0, errors.New("invalid user ID format")
+	}
+	
+	// Additional validation: ensure positive ID - FIX: Business logic validation
+	if id <= 0 {
+		return 0, errors.New("user ID must be positive")
+	}
+	
+	return int(id), nil
 }
