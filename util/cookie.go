@@ -38,15 +38,19 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 	http.SetCookie(w, &cookie)
 }
 
-func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
-	return cookie.Value
+// Enhanced GetCookie with validation to prevent empty values
+func GetCookie(r *http.Request, name string) (string, error) {
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		return "", err
+	}
+	// Added validation to prevent empty cookie values
+	if cookie.Value == "" {
+		return "", fmt.Errorf("empty cookie value")
+	}
+	return cookie.Value, nil
 }
 
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
 			Value:   "",
 			Expires: time.Unix(0, 0),
 		}
