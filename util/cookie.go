@@ -43,13 +43,25 @@ func GetCookie(r *http.Request, name string) string {
 	return cookie.Value
 }
 
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
-			Value:   "",
-			Expires: time.Unix(0, 0),
-		}
-		http.SetCookie(w, cookie)
-	}
+// GetCookieSafe retrieves and validates cookie value with input sanitization
+func GetCookieSafe(r *http.Request, name string) (string, error) {
+    cookie, err := r.Cookie(name)
+    if err != nil {
+        return "", err
+    }
+    
+    // Validate cookie value - for Uid, enforce numeric format to prevent SQL injection
+    if name == "Uid" {
+        // Enhanced validation: check numeric format and range (Mitigation Note 3)
+        uidValue, err := strconv.Atoi(cookie.Value)
+        if err != nil {
+            return "", fmt.Errorf("invalid cookie format")
+        }
+        // Whitelist valid user ID range to prevent integer overflow and ensure data integrity
+        if uidValue < 1 || uidValue > 2147483647 {
+            return "", fmt.Errorf("user ID out of valid range")
+        }
+    }
+    
+    return cookie.Value, nil
 }
