@@ -39,17 +39,15 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 }
 
 func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
+	cookie, err := r.Cookie(name)
+	// Handle error and return empty string if cookie not found - prevents nil pointer dereference
+	if err != nil {
+		log.Printf("Cookie retrieval error for %s: %s", name, err.Error())
+		return ""
+	}
 	return cookie.Value
 }
 
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
-			Value:   "",
-			Expires: time.Unix(0, 0),
-		}
 		http.SetCookie(w, cookie)
 	}
 }
