@@ -38,18 +38,36 @@ func SetCookie(w http.ResponseWriter, name, value string) {
 	http.SetCookie(w, &cookie)
 }
 
-func GetCookie(r *http.Request, name string) string {
-	cookie, _ := r.Cookie(name)
-	return cookie.Value
-}
-
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
-			Value:   "",
-			Expires: time.Unix(0, 0),
-		}
-		http.SetCookie(w, cookie)
-	}
+// GetCookie retrieves and validates a cookie value from the request
+// FIX: Added error handling and validation instead of silently ignoring errors
+func GetCookie(r *http.Request, name string) (string, error) {
+    cookie, err := r.Cookie(name)
+    if err != nil {
+        return "", err
+    }
+    
+    // FIX: Validate the cookie value before returning
+    if cookie.Value == "" {
+        return "", errors.New("empty cookie value")
+    }
+// ValidateUID validates that the UID is a valid integer and meets security constraints
+// FIX: New validation function to ensure UID format is safe before database operations
+func ValidateUID(uid string) error {
+    // FIX: Ensure uid is a valid integer to prevent SQL injection
+    _, err := strconv.Atoi(uid)
+    if err != nil {
+        return errors.New("invalid user ID format")
+    }
+    
+    // FIX: Additional validation - check reasonable length to prevent overflow attacks
+    if len(uid) > 10 {
+        return errors.New("user ID exceeds maximum length")
+    }
+    
+    // FIX: Prevent negative or zero values
+    if uid[0] == '-' || uid == "0" {
+        return errors.New("user ID must be a positive integer")
+    }
+    
+    return nil
 }
