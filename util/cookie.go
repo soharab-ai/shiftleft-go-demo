@@ -42,14 +42,19 @@ func GetCookie(r *http.Request, name string) string {
 	cookie, _ := r.Cookie(name)
 	return cookie.Value
 }
-
-func DeleteCookie(w http.ResponseWriter, cookies []string) {
-	for _, name := range cookies {
-		cookie := &http.Cookie{
-			Name:    name,
-			Value:   "",
-			Expires: time.Unix(0, 0),
-		}
-		http.SetCookie(w, cookie)
-	}
+// ValidateUID validates and sanitizes user ID input to prevent SQL injection
+// Returns validated integer ID or error if input is invalid
+func ValidateUID(uid string) (int, error) {
+    // Convert to integer and validate - prevents SQL injection by ensuring only numeric values
+    id, err := strconv.Atoi(uid)
+    if err != nil {
+        return 0, errors.New("invalid user ID format")
+    }
+    
+    // Additional validation: ensure positive integer and add upper bound validation to prevent integer overflow and DoS
+    if id <= 0 || id > 2147483647 {
+        return 0, errors.New("user ID out of valid range")
+    }
+    
+    return id, nil
 }
